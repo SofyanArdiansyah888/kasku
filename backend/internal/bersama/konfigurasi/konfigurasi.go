@@ -33,7 +33,7 @@ func Muat() (*Konfigurasi, error) {
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     getEnv("DB_PORT", "5432"),
 		DBUser:     getEnv("DB_USER", "kasku"),
-		DBPassword: getEnv("DB_PASSWORD", "kasku"),
+		DBPassword: getEnv("DB_PASSWORD", getEnv("POSTGRES_PASSWORD", "kasku")),
 		DBName:     getEnv("DB_NAME", "kasku"),
 		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:  getEnv("JWT_SECRET", "rahasia-dev"),
