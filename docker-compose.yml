@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kasku-postgres
+    environment:
+      POSTGRES_USER: kasku
+      POSTGRES_PASSWORD: kasku
+      POSTGRES_DB: kasku
+    ports:
+      - "5432:5432"
+    volumes:
+      - kasku_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kasku -d kasku"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  kasku_pgdata:

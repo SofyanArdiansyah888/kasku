@@ -1,0 +1,63 @@
+package repositori
+
+import (
+	"errors"
+
+	"github.com/google/uuid"
+	"github.com/kasku/backend/internal/modul/tag/entitas"
+	"gorm.io/gorm"
+)
+
+type RepositoriPostgres struct {
+	db *gorm.DB
+}
+
+func Baru(db *gorm.DB) *RepositoriPostgres {
+	return &RepositoriPostgres{db: db}
+}
+
+func (r *RepositoriPostgres) Simpan(t *entitas.Tag) error {
+	if err := t.SebelumBuat(); err != nil {
+		return err
+	}
+	return r.db.Create(t).Error
+}
+
+func (r *RepositoriPostgres) Ubah(t *entitas.Tag) error {
+	return r.db.Save(t).Error
+}
+
+func (r *RepositoriPostgres) Hapus(id, penggunaID uuid.UUID) error {
+	res := r.db.Where("id = ? AND pengguna_id = ?", id, penggunaID).Delete(&entitas.Tag{})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+func (r *RepositoriPostgres) AmbilByID(id, penggunaID uuid.UUID) (*entitas.Tag, error) {
+	var t entitas.Tag
+	err := r.db.Where("id = ? AND pengguna_id = ?", id, penggunaID).First(&t).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &t, err
+}
+
+func (r *RepositoriPostgres) AmbilSemua(penggunaID uuid.UUID) ([]entitas.Tag, error) {
+	var list []entitas.Tag
+	err := r.db.Where("pengguna_id = ?", penggunaID).Order("nama ASC").Find(&list).Error
+	return list, err
+}
+
+func (r *RepositoriPostgres) AmbilByIDs(ids []uuid.UUID, penggunaID uuid.UUID) ([]entitas.Tag, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var list []entitas.Tag
+	err := r.db.Where("pengguna_id = ? AND id IN ?", penggunaID, ids).Find(&list).Error
+	return list, err
+}
