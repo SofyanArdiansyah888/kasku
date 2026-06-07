@@ -6,14 +6,11 @@
 #
 # Deploy:
 #   cp env.prod.example .env
-#   # edit .env — password pakai single quote jika ada karakter $
+#   # edit .env — set POSTGRES_PASSWORD (pakai single quote jika ada karakter $)
 #   docker compose up -d --build
 #
-# Password DB (disarankan):
-#   mkdir -p secrets
-#   echo -n 'password-kuat-anda' > secrets/db_password.txt
-#   chmod 600 secrets/db_password.txt
-#   ./scripts/sync-db-password.sh   # wajib jika volume postgres sudah pernah dibuat
+# Jika volume postgres sudah pernah dibuat dengan password lama:
+#   chmod +x scripts/sync-db-password.sh && ./scripts/sync-db-password.sh
 
 services:
   postgres:
@@ -25,9 +22,6 @@ services:
     environment:
       POSTGRES_USER: ${DB_USER:-kasku}
       POSTGRES_DB: ${DB_NAME:-kasku}
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-    secrets:
-      - db_password
     volumes:
       - kasku_pgdata:/var/lib/postgresql/data
     ports:
@@ -53,12 +47,9 @@ services:
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_SSLMODE: disable
-      DB_PASSWORD_FILE: /run/secrets/db_password
       JWT_EXPIRY: ${JWT_EXPIRY:-24h}
       PORT: "8080"
       CORS_ORIGIN: ${CORS_ORIGIN:-https://kasku.jismo-educational.org}
-    secrets:
-      - db_password
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,7 +94,3 @@ networks:
 
 volumes:
   kasku_pgdata:
-
-secrets:
-  db_password:
-    file: ./secrets/db_password.txt
