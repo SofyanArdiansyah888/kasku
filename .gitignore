@@ -48,6 +48,7 @@ Desktop.ini
 
 # ─── Docker (local overrides) ───
 docker-compose.override.yml
+secrets/db_password.txt
 
 # ─── Misc ───
 *.local
