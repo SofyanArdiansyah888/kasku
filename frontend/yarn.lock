@@ -1475,6 +1475,27 @@ __metadata:
   languageName: node
   linkType: hard
 
+"kasku-frontend@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "kasku-frontend@workspace:."
+  dependencies:
+    "@adobe/react-spectrum": "npm:^3"
+    "@tanstack/react-query": "npm:^5"
+    "@tanstack/react-router": "npm:^1"
+    "@tanstack/react-table": "npm:^8"
+    "@tanstack/router-plugin": "npm:^1"
+    "@types/react": "npm:^18"
+    "@types/react-dom": "npm:^18"
+    "@vitejs/plugin-react": "npm:^4"
+    lucide-react: "npm:^0"
+    react: "npm:^18"
+    react-dom: "npm:^18"
+    typescript: "npm:^5"
+    vite: "npm:^6"
+    zod: "npm:^3"
+  languageName: unknown
+  linkType: soft
+
 "loose-envify@npm:^1.1.0, loose-envify@npm:^1.4.0":
   version: 1.4.0
   resolution: "loose-envify@npm:1.4.0"
@@ -1725,27 +1746,6 @@ __metadata:
   checksum: 10c0/002cba940384c9930008c0bce26cac97a9d5682bc623112c2268ba0c155127d9c178a9a5cc2212d560088d60dfd503edd808669a25f9b377f316a32361d0b23c
   languageName: node
   linkType: hard
-
-"react-starter-kit@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "react-starter-kit@workspace:."
-  dependencies:
-    "@adobe/react-spectrum": "npm:^3"
-    "@tanstack/react-query": "npm:^5"
-    "@tanstack/react-router": "npm:^1"
-    "@tanstack/react-table": "npm:^8"
-    "@tanstack/router-plugin": "npm:^1"
-    "@types/react": "npm:^18"
-    "@types/react-dom": "npm:^18"
-    "@vitejs/plugin-react": "npm:^4"
-    lucide-react: "npm:^0"
-    react: "npm:^18"
-    react-dom: "npm:^18"
-    typescript: "npm:^5"
-    vite: "npm:^6"
-    zod: "npm:^3"
-  languageName: unknown
-  linkType: soft
 
 "react-stately@npm:3.46.0":
   version: 3.46.0

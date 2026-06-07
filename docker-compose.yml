@@ -6,8 +6,8 @@
 #
 # Deploy:
 #   cp env.prod.example .env
-#   # edit .env (password DB, JWT_SECRET, dll.)
-#   docker compose -f docker-compose.prod.yml up -d --build
+#   # edit .env — password pakai single quote jika ada karakter $
+#   docker compose up -d --build
 
 services:
   postgres:
