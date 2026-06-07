@@ -20,6 +20,9 @@ services:
       POSTGRES_DB: ${DB_NAME:-kasku}
     volumes:
       - kasku_pgdata:/var/lib/postgresql/data
+    ports:
+      # Default bind 127.0.0.1 (SSH tunnel). Set DB_PUBLISH_HOST=0.0.0.0 untuk akses remote langsung.
+      - "${DB_PUBLISH_HOST:-127.0.0.1}:${DB_PUBLISH_PORT:-5432}:5432"
     networks:
       - kasku-internal
     healthcheck:

@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     container_name: kasku-postgres
     environment:
-      POSTGRES_USER: kasku
-      POSTGRES_PASSWORD: kasku
-      POSTGRES_DB: kasku
+      POSTGRES_USER: ${DB_USER:-kasku}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-kasku}
+      POSTGRES_DB: ${DB_NAME:-kasku}
     ports:
-      - "5432:5432"
+      - "${DB_PUBLISH_HOST:-127.0.0.1}:${DB_PUBLISH_PORT:-5432}:5432"
     volumes:
       - kasku_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kasku -d kasku"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-kasku} -d ${DB_NAME:-kasku}"]
       interval: 5s
       timeout: 5s
       retries: 5
