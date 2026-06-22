@@ -140,10 +140,10 @@ func (r *RepositoriPostgres) HitungSaldoDompet(dompetID, penggunaID uuid.UUID) (
 				saldo -= t.Jumlah
 			}
 		case entitas.JenisTransfer:
+			// Data lama sebelum migrasi: dompet_id = sumber, dompet_tujuan_id = tujuan
 			if t.DompetID == dompetID {
 				saldo -= t.Jumlah
-			}
-			if t.DompetTujuanID != nil && *t.DompetTujuanID == dompetID {
+			} else if t.DompetTujuanID != nil && *t.DompetTujuanID == dompetID {
 				saldo += t.Jumlah
 			}
 		}

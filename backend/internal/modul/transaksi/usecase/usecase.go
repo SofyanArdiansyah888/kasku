@@ -57,7 +57,7 @@ func (u *Usecase) Ubah(penggunaID, id uuid.UUID, req dto.PermintaanUbah) (*dto.R
 	if t == nil {
 		return nil, ErrTransaksiTidakAda
 	}
-	if t.Jenis == entitas.JenisTransfer {
+	if t.PasanganTransferID != nil {
 		return nil, errors.New("transaksi transfer tidak dapat diubah, hapus dan buat ulang")
 	}
 
@@ -94,7 +94,7 @@ func (u *Usecase) Hapus(penggunaID, id uuid.UUID) error {
 	if t == nil {
 		return ErrTransaksiTidakAda
 	}
-	if t.Jenis == entitas.JenisTransfer && t.PasanganTransferID != nil {
+	if t.PasanganTransferID != nil {
 		_ = u.repo.Hapus(*t.PasanganTransferID, penggunaID)
 	}
 	return u.repo.Hapus(id, penggunaID)
@@ -164,7 +164,7 @@ func (u *Usecase) Transfer(penggunaID uuid.UUID, req dto.PermintaanTransfer) (*d
 	keluar := &entitas.Transaksi{
 		PenggunaID:       penggunaID,
 		DompetID:         asalID,
-		Jenis:            entitas.JenisTransfer,
+		Jenis:            entitas.JenisPengeluaran,
 		Jumlah:           req.Jumlah,
 		Keterangan:       req.Keterangan,
 		TanggalTransaksi: tgl,
@@ -176,13 +176,13 @@ func (u *Usecase) Transfer(penggunaID uuid.UUID, req dto.PermintaanTransfer) (*d
 	}
 
 	masuk := &entitas.Transaksi{
-		PenggunaID:       penggunaID,
-		DompetID:         tujuanID,
-		Jenis:            entitas.JenisTransfer,
-		Jumlah:           req.Jumlah,
-		Keterangan:       req.Keterangan,
-		TanggalTransaksi: tgl,
-		DompetTujuanID:   &asalID,
+		PenggunaID:         penggunaID,
+		DompetID:           tujuanID,
+		Jenis:              entitas.JenisPemasukan,
+		Jumlah:             req.Jumlah,
+		Keterangan:         req.Keterangan,
+		TanggalTransaksi:   tgl,
+		DompetTujuanID:     &asalID,
 		PasanganTransferID: &keluar.ID,
 	}
 	if err := u.repo.SimpanDalamTx(tx, masuk); err != nil {

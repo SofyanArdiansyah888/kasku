@@ -26,7 +26,7 @@ func Hubungkan(dsn string) (*gorm.DB, error) {
 }
 
 func Migrasi(db *gorm.DB) error {
-	return db.AutoMigrate(
+	if err := db.AutoMigrate(
 		&entAutentikasi.Pengguna{},
 		&entDompet.Dompet{},
 		&entKategori.Kategori{},
@@ -35,5 +35,25 @@ func Migrasi(db *gorm.DB) error {
 		&entTransaksi.TransaksiTag{},
 		&entAnggaran.Anggaran{},
 		&entBerulang.TransaksiBerulang{},
-	)
+	); err != nil {
+		return err
+	}
+	return migrasiTransferLama(db)
+}
+
+func migrasiTransferLama(db *gorm.DB) error {
+	// Keluar: record yang dirujuk pasangan_transfer_id oleh rekan transfer
+	if err := db.Exec(`
+		UPDATE transaksi
+		SET jenis = 'pengeluaran'
+		WHERE jenis = 'transfer'
+		  AND id IN (
+		    SELECT pasangan_transfer_id FROM transaksi
+		    WHERE jenis = 'transfer' AND pasangan_transfer_id IS NOT NULL
+		  )
+	`).Error; err != nil {
+		return err
+	}
+	// Masuk: sisa record transfer
+	return db.Exec(`UPDATE transaksi SET jenis = 'pemasukan' WHERE jenis = 'transfer'`).Error
 }

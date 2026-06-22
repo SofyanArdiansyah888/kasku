@@ -30,6 +30,7 @@ export function TransaksiPage() {
   const [form, setForm] = useState<TransaksiInput>(defaultTransaksi)
   const [transferForm, setTransferForm] = useState<TransferInput>(defaultTransfer)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null)
+  const [formError, setFormError] = useState('')
 
   const { data: transaksiRes, isLoading } = useQuery({
     queryKey: ['transaksi'],
@@ -50,19 +51,23 @@ export function TransaksiPage() {
     setEditingId(null)
     setForm(defaultTransaksi)
     setTransferForm(defaultTransfer)
+    setFormError('')
   }
 
   const createMut = useMutation({
     mutationFn: transaksiApi.create,
     onSuccess: () => { invalidate(); resetModal() },
+    onError: (e: Error) => setFormError(e.message),
   })
   const updateMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: TransaksiInput }) => transaksiApi.update(id, data),
     onSuccess: () => { invalidate(); resetModal() },
+    onError: (e: Error) => setFormError(e.message),
   })
   const transferMut = useMutation({
     mutationFn: transaksiApi.transfer,
     onSuccess: () => { invalidate(); resetModal() },
+    onError: (e: Error) => setFormError(e.message),
   })
   const deleteMut = useMutation({
     mutationFn: transaksiApi.delete,
@@ -75,11 +80,28 @@ export function TransaksiPage() {
   const kategoriMap = Object.fromEntries(kategoriList.map((k) => [k.id, k.nama]))
   const dompetMap = Object.fromEntries(dompetList.map((d) => [d.id, d.nama]))
 
+  const labelJenisBaris = (t: Transaksi) => {
+    if (t.pasanganTransferId) {
+      if (t.jenis === 'pengeluaran' && t.dompetTujuanId) {
+        return `Transfer ke ${dompetMap[t.dompetTujuanId] ?? 'dompet lain'}`
+      }
+      if (t.jenis === 'pemasukan' && t.dompetTujuanId) {
+        return `Transfer dari ${dompetMap[t.dompetTujuanId] ?? 'dompet lain'}`
+      }
+      return 'Transfer'
+    }
+    return labelJenisKategori[t.jenis as 'pemasukan' | 'pengeluaran'] ?? t.jenis
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError('')
     if (tab === 'transaksi') {
       const p = transaksiSchema.safeParse(form)
-      if (!p.success) return
+      if (!p.success) {
+        setFormError(p.error.errors[0]?.message ?? 'Data tidak valid')
+        return
+      }
       const data = { ...p.data, kategoriId: p.data.kategoriId || undefined }
       if (editingId) {
         updateMut.mutate({ id: editingId, data })
@@ -88,13 +110,18 @@ export function TransaksiPage() {
       }
     } else {
       const p = transferSchema.safeParse(transferForm)
-      if (p.success) transferMut.mutate(p.data)
+      if (!p.success) {
+        setFormError(p.error.errors[0]?.message ?? 'Data tidak valid')
+        return
+      }
+      transferMut.mutate(p.data)
     }
   }
 
   const openModal = () => {
     setTab('transaksi')
     setEditingId(null)
+    setFormError('')
     setForm({ ...defaultTransaksi, tanggalTransaksi: tanggalHariIni() })
     setTransferForm({ ...defaultTransfer, tanggalTransaksi: tanggalHariIni() })
     setModalOpen(true)
@@ -164,6 +191,8 @@ export function TransaksiPage() {
             </button>
           </div>
         )}
+
+        {formError && <p className="form-error">{formError}</p>}
 
         {tab === 'transaksi' ? (
           <div className="form-grid form-grid--2">
@@ -241,19 +270,20 @@ export function TransaksiPage() {
             {transaksiRes?.data.map((t) => (
               <tr key={t.id}>
                 <td data-label="Tanggal">{t.tanggalTransaksi}</td>
-                <td data-label="Jenis">{t.jenis === 'transfer' ? 'Transfer' : labelJenisKategori[t.jenis as 'pemasukan' | 'pengeluaran'] ?? t.jenis}</td>
+                <td data-label="Jenis">{labelJenisBaris(t)}</td>
                 <td data-label="Dompet">{dompetMap[t.dompetId] ?? '-'}</td>
                 <td data-label="Kategori">{t.kategoriId ? kategoriMap[t.kategoriId] : '-'}</td>
                 <td
                   data-label="Jumlah"
-                  style={{ fontWeight: 800, color: t.jenis === 'pengeluaran' ? 'var(--color-danger)' : 'var(--color-success)' }}
+                  style={{ fontWeight: 800, color: t.jenis === 'pengeluaran' ? 'var(--color-danger)' : t.jenis === 'pemasukan' ? 'var(--color-success)' : 'var(--color-text)' }}
                 >
+                  {t.jenis === 'pengeluaran' ? '-' : t.jenis === 'pemasukan' ? '+' : ''}
                   {formatRupiah(t.jumlah)}
                 </td>
                 <td data-label="Keterangan">{t.keterangan || '-'}</td>
                 <td data-label="" className="td-actions">
                   <TableActions
-                    hideEdit={t.jenis === 'transfer'}
+                    hideEdit={!!t.pasanganTransferId}
                     onEdit={() => openEdit(t)}
                     onDelete={() => setDeleteTarget({
                       id: t.id,

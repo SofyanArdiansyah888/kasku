@@ -18,6 +18,9 @@ export const transferSchema = z.object({
   jumlah: z.coerce.number().positive('Jumlah harus lebih dari 0'),
   keterangan: z.string().optional(),
   tanggalTransaksi: z.string().min(1, 'Tanggal wajib diisi'),
+}).refine((d) => d.dompetAsalId !== d.dompetTujuanId, {
+  message: 'Dompet asal dan tujuan tidak boleh sama',
+  path: ['dompetTujuanId'],
 })
 
 export type TransaksiInput = z.infer<typeof transaksiSchema>
