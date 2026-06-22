@@ -1,3 +1,11 @@
+# Deploy:
+#   cp env.prod.example .env
+#   cp secrets.env.example secrets.env   # isi POSTGRES_PASSWORD & JWT_SECRET
+#   docker compose up -d --build
+#
+# Password dengan karakter $ — tulis di secrets.env (bukan .env):
+#   POSTGRES_PASSWORD=pass$$Wm8abc   ($$ = literal $)
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -5,6 +13,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+      - path: secrets.env
+        required: false
     environment:
       POSTGRES_USER: ${DB_USER:-kasku}
       POSTGRES_DB: ${DB_NAME:-kasku}
@@ -28,6 +38,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+      - path: secrets.env
+        required: false
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -62,13 +74,13 @@ services:
       - kasku-internal
       - traefik-public
     labels:
-      - traefik.enable=true
-      - traefik.docker.network=traefik-public
-      - traefik.http.routers.kasku.rule=Host(`kasku.jismo-educational.org`)
-      - traefik.http.routers.kasku.entrypoints=websecure
-      - traefik.http.routers.kasku.tls=true
-      - traefik.http.routers.kasku.tls.certresolver=le
-      - traefik.http.services.kasku.loadbalancer.server.port=80
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.kasku.rule=Host(`kasku.jismo-educational.org`)"
+      - "traefik.http.routers.kasku.entrypoints=websecure"
+      - "traefik.http.routers.kasku.tls=true"
+      - "traefik.http.routers.kasku.tls.certresolver=le"
+      - "traefik.http.services.kasku.loadbalancer.server.port=80"
 
 networks:
   kasku-internal:
