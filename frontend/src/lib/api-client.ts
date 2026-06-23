@@ -95,6 +95,16 @@ export function bulanSekarang() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+export function rentangBulan(bulan: string) {
+  const [y, m] = bulan.split('-').map(Number)
+  const mm = String(m).padStart(2, '0')
+  const lastDay = new Date(y, m, 0).getDate()
+  return {
+    dari: `${y}-${mm}-01`,
+    sampai: `${y}-${mm}-${String(lastDay).padStart(2, '0')}`,
+  }
+}
+
 export function tanggalHariIni() {
   return new Date().toISOString().slice(0, 10)
 }

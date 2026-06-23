@@ -1,14 +1,22 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Download } from 'lucide-react'
 import { laporanApi } from '../../lib/api/laporan'
 import { kategoriApi } from '../../lib/api/kategori'
-import { formatRupiah, bulanSekarang } from '../../lib/api-client'
+import { dompetApi } from '../../lib/api/dompet'
+import { transaksiApi } from '../../lib/api/transaksi'
+import { formatRupiah, bulanSekarang, rentangBulan } from '../../lib/api-client'
+import { labelJenisKategori } from '../../schemas/kategori.schema'
+import type { RincianKategori } from '../../schemas/laporan.schema'
+import { Modal } from '../../components/ui/Modal'
 
 export function LaporanPage() {
   const [bulan, setBulan] = useState(bulanSekarang())
   const [dari, setDari] = useState('')
   const [sampai, setSampai] = useState('')
+  const [detailTarget, setDetailTarget] = useState<(RincianKategori & { nama: string }) | null>(null)
+
+  const { dari: bulanDari, sampai: bulanSampai } = useMemo(() => rentangBulan(bulan), [bulan])
 
   const { data: ringkasan, isLoading } = useQuery({
     queryKey: ['laporan-bulanan', bulan],
@@ -22,8 +30,27 @@ export function LaporanPage() {
     queryKey: ['kategori'],
     queryFn: () => kategoriApi.list(),
   })
+  const { data: dompetList = [] } = useQuery({
+    queryKey: ['dompet'],
+    queryFn: dompetApi.list,
+  })
+
+  const { data: detailRes, isLoading: detailLoading } = useQuery({
+    queryKey: ['laporan-detail', bulan, detailTarget?.kategoriId, detailTarget?.jenis],
+    queryFn: () =>
+      transaksiApi.list({
+        dari: bulanDari,
+        sampai: bulanSampai,
+        kategori_id: detailTarget!.kategoriId,
+        jenis: detailTarget!.jenis,
+        batas: 500,
+      }),
+    enabled: detailTarget !== null,
+  })
 
   const kategoriMap = Object.fromEntries(kategoriList.map((k) => [k.id, k.nama]))
+  const dompetMap = Object.fromEntries(dompetList.map((d) => [d.id, d.nama]))
+  const detailList = detailRes?.data ?? []
 
   const handleEkspor = async () => {
     const blob = await laporanApi.eksporTransaksi(dari || undefined, sampai || undefined)
@@ -33,6 +60,14 @@ export function LaporanPage() {
     a.download = 'transaksi.csv'
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const openDetail = (r: RincianKategori) => {
+    if (r.jenis !== 'pengeluaran') return
+    setDetailTarget({
+      ...r,
+      nama: kategoriMap[r.kategoriId] ?? r.kategoriId,
+    })
   }
 
   return (
@@ -69,21 +104,81 @@ export function LaporanPage() {
       </div>
 
       <h2 style={{ fontSize: 16, fontWeight: 800, marginBottom: 12 }}>Rincian per Kategori</h2>
+      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12 }}>
+        Klik baris pengeluaran untuk melihat detail transaksi.
+      </p>
       <div className="panel table-responsive" style={{ marginBottom: 24, padding: 0 }}>
         <table className="data-table data-table--responsive">
           <thead><tr><th>Kategori</th><th>Jenis</th><th>Total</th></tr></thead>
           <tbody>
-            {rincian.map((r) => (
-              <tr key={`${r.kategoriId}-${r.jenis}`}>
-                <td data-label="Kategori">{kategoriMap[r.kategoriId] ?? r.kategoriId}</td>
-                <td data-label="Jenis">{r.jenis}</td>
-                <td data-label="Total" style={{ fontWeight: 800 }}>{formatRupiah(r.total)}</td>
-              </tr>
-            ))}
+            {rincian.map((r) => {
+              const clickable = r.jenis === 'pengeluaran'
+              return (
+                <tr
+                  key={`${r.kategoriId}-${r.jenis}`}
+                  onClick={() => openDetail(r)}
+                  style={clickable ? { cursor: 'pointer' } : undefined}
+                  className={clickable ? 'data-table__row--clickable' : undefined}
+                >
+                  <td data-label="Kategori">{kategoriMap[r.kategoriId] ?? r.kategoriId}</td>
+                  <td data-label="Jenis">{labelJenisKategori[r.jenis as 'pemasukan' | 'pengeluaran'] ?? r.jenis}</td>
+                  <td data-label="Total" style={{ fontWeight: 800 }}>{formatRupiah(r.total)}</td>
+                </tr>
+              )
+            })}
             {rincian.length === 0 && <tr><td colSpan={3}>Tidak ada data</td></tr>}
           </tbody>
         </table>
       </div>
+
+      <Modal
+        open={detailTarget !== null}
+        onClose={() => setDetailTarget(null)}
+        title={`Detail Pengeluaran — ${detailTarget?.nama ?? ''}`}
+        size="lg"
+        footer={
+          <button type="button" className="btn btn-primary" onClick={() => setDetailTarget(null)}>
+            Tutup
+          </button>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>
+          Bulan {bulan} · Total {formatRupiah(detailTarget?.total ?? 0)}
+        </p>
+        <div className="table-responsive">
+          <table className="data-table data-table--responsive">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Dompet</th>
+                <th>Jumlah</th>
+                <th>Keterangan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detailLoading && (
+                <tr><td colSpan={4}>Memuat...</td></tr>
+              )}
+              {!detailLoading && detailList.length === 0 && (
+                <tr><td colSpan={4}>Tidak ada transaksi</td></tr>
+              )}
+              {!detailLoading && detailList.map((t) => (
+                <tr key={t.id}>
+                  <td data-label="Tanggal">{t.tanggalTransaksi}</td>
+                  <td data-label="Dompet">{dompetMap[t.dompetId] ?? '-'}</td>
+                  <td
+                    data-label="Jumlah"
+                    style={{ fontWeight: 800, color: 'var(--color-danger)' }}
+                  >
+                    -{formatRupiah(t.jumlah)}
+                  </td>
+                  <td data-label="Keterangan">{t.keterangan || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Modal>
 
       <div className="panel" style={{ padding: 20 }}>
         <h2 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>Ekspor CSV</h2>
